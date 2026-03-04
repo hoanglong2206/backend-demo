@@ -4,23 +4,23 @@
     "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,
     "esModuleInterop": true,
-    "isolatedModules": true,
+    "isolatedModules": false,
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
+    "target": "esnext",
     "sourceMap": true,
     "outDir": "./dist",
     "incremental": true,
     "skipLibCheck": true,
+    "strict": true,
     "strictNullChecks": true,
+    "noImplicitAny": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "exactOptionalPropertyTypes": true,
-    "noUncheckedIndexedAccess": true
+    "useDefineForClassFields": false
   }
 }

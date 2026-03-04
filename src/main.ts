@@ -1,16 +1,25 @@
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ResponseTransformInterceptor } from './shared/core/interceptors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
 
-  app.setGlobalPrefix('api');
+  const port = configService.get<number>('app.port', 3000);
+  const apiPrefix = configService.get<string>('app.apiPrefix', 'api');
+  const apiDefaultVersion = configService.get<string>(
+    'app.apiDefaultVersion',
+    '1',
+  );
+
+  app.setGlobalPrefix(apiPrefix);
 
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: '1',
+    defaultVersion: apiDefaultVersion,
   });
 
   // Global validation pipe — validates ALL incoming DTOs automatically
@@ -30,9 +39,10 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
-  const port = process.env.PORT ?? 3000;
   await app.listen(port);
 
-  console.log(`🚀 Server running on http://localhost:${port}/api/v1`);
+  console.log(
+    `🚀 Server running on http://localhost:${port}/${apiPrefix}/v${apiDefaultVersion}`,
+  );
 }
 bootstrap();
