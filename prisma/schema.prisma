@@ -8,8 +8,67 @@ generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
   moduleFormat = "cjs"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
+  schemas = ["app_auth"]
+  extensions = [uuidOssp(map: "uuid-ossp")]
+}
+
+model Auth {
+  id                  String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email               String        @unique @db.VarChar(255)
+  emailVerified       Boolean       @default(false) @map("email_verified")
+  passwordHash        String?       @map("password_hash") @db.VarChar(255)
+  isActive            Boolean       @default(true) @map("is_active")
+  lastLoginAt         DateTime?     @map("last_login_at") @db.Timestamp(6)
+  failedLoginCount    Int           @default(0) @map("failed_login_count") @db.SmallInt
+  lockedUntil         DateTime?     @map("locked_until") @db.Timestamp(6)
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
+  authProviders       String        @default("local") @map("auth_providers") @db.VarChar(30)
+  providerId          String?       @map("provider_id") @db.VarChar(255)
+
+  emailVerifications   EmailVerification[]
+  refreshTokens        RefreshToken[]
+
+  @@map("user_auth")
+  @@index([email])
+  @@index([authProviders, providerId], name: "idx_provider")
+  @@schema("app_auth")
+}
+
+model EmailVerification {
+  id                  String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email               String        @db.VarChar(255)
+  token               String        @db.VarChar(255)
+  expiresAt           DateTime      @map("expires_at") @db.Timestamp(6)
+  verifiedAt          DateTime?     @map("verified_at") @db.Timestamp(6)
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  ipAddress           String?       @map("ip_address") @db.Inet
+
+  userId              String        @map("user_id") @db.Uuid
+  user                Auth          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification")
+  @@index([email])
+  @@index([token])
+  @@schema("app_auth")
+}
+
+model RefreshToken {
+  id                  String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  token               String        @db.VarChar(255)
+  expiresAt           DateTime      @map("expires_at") @db.Timestamp(6)
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  ipAddress           String?       @map("ip_address") @db.Inet
+
+  userId              String        @map("user_id") @db.Uuid
+  user                Auth          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_token")
+  @@index([token])
+  @@schema("app_auth")
 }
