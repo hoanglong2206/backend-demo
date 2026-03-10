@@ -4,33 +4,36 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { IEmailVerificationRepository } from '@modules/auth/domain/repositories/email-verification.repository';
 import { ITokenGeneratorService } from '@modules/auth/domain/services/token-generator.service';
+import {
+  IOtpCacheService,
+  OTP_MAX_ATTEMPTS,
+} from '@modules/auth/domain/services/otp-cache.service';
+import { OtpExpiredException } from '@modules/auth/domain/exceptions/otp-expired.exception';
+import { OtpMaxAttemptsException } from '@modules/auth/domain/exceptions/otp-max-attempts.exception';
+import { EmailAlreadyVerifiedException } from '@modules/auth/domain/exceptions/email-already-verified.exception';
 import { VerifyOtpInput, VerifyOtpOutput } from './verify-otp.dto';
 
 /**
  * Use-case: Verify the OTP code sent to the user's email.
  *
- * Validates the verification_token, finds the matching
- * EmailVerification entity, and delegates OTP checking to
- * the domain (which enforces expiry, max-attempts, and
- * already-verified rules).
- *
- * On success, returns an account_token the client uses to
- * finalize registration in the create-account flow.
+ * Extracts the verificationId from the verification_token JWT, looks up
+ * the OTP entry in Redis, and enforces expiry / max-attempts / already-
+ * verified rules. On success marks the entry as verified and returns an
+ * account_token for the final create-account step.
  */
 @Injectable()
 export class VerifyOtpHandler {
   constructor(
-    @Inject('IEmailVerificationRepository')
-    private readonly emailVerificationRepo: IEmailVerificationRepository,
-
     @Inject('ITokenGeneratorService')
     private readonly tokenGenerator: ITokenGeneratorService,
+
+    @Inject('IOtpCacheService')
+    private readonly otpCache: IOtpCacheService,
   ) {}
 
   async execute(input: VerifyOtpInput): Promise<VerifyOtpOutput> {
-    // 1. Verify the verification_token to extract the verificationId
+    // 1. Decode the verification_token to get the verificationId
     let payload: Record<string, unknown>;
     try {
       payload = await this.tokenGenerator.verifyAccessToken(
@@ -45,27 +48,45 @@ export class VerifyOtpHandler {
       throw new UnauthorizedException('Invalid verification token payload.');
     }
 
-    // 2. Find the EmailVerification entity
-    const verification =
-      await this.emailVerificationRepo.findById(verificationId);
-    if (!verification) {
+    // 2. Load the OTP entry from Redis
+    const entry = await this.otpCache.findById(verificationId);
+    if (!entry) {
       throw new NotFoundException('No pending verification found.');
     }
 
-    // 3. Verify the OTP (domain enforces expiry, max attempts, already-verified)
-    verification.verify(input.otp);
+    // 3. Guard: already verified
+    if (entry.verifiedAt) {
+      throw new EmailAlreadyVerifiedException();
+    }
 
-    // 4. Persist the updated verification (attempts, verifiedAt)
-    await this.emailVerificationRepo.update(verification);
+    // 4. Guard: OTP expired (Redis TTL expired → entry gone, but belt-and-suspenders check)
+    if (new Date() > entry.expiresAt) {
+      throw new OtpExpiredException();
+    }
 
-    // 5. Generate an account_token for the create-account step
+    // 5. Guard: max attempts reached
+    if (entry.attempts >= OTP_MAX_ATTEMPTS) {
+      throw new OtpMaxAttemptsException();
+    }
+
+    // 6. Validate the submitted code
+    if (entry.otp !== input.otp) {
+      entry.attempts += 1;
+      await this.otpCache.update(entry);
+      if (entry.attempts >= OTP_MAX_ATTEMPTS) {
+        throw new OtpMaxAttemptsException();
+      }
+      throw new UnauthorizedException('Invalid OTP code.');
+    }
+
+    // 7. Mark as verified
+    entry.verifiedAt = new Date();
+    await this.otpCache.update(entry);
+
+    // 8. Issue an account_token for the create-account step
     const accountToken = await this.tokenGenerator.generateAccessToken(
       verificationId,
-      {
-        email: verification.email,
-        purpose: 'account_creation',
-        verified: true,
-      },
+      { email: entry.email, purpose: 'account_creation', verified: true },
     );
 
     const output = new VerifyOtpOutput();

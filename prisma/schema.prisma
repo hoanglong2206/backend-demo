@@ -31,30 +31,11 @@ model Auth {
   authProviders       String        @default("local") @map("auth_providers") @db.VarChar(30)
   providerId          String?       @map("provider_id") @db.VarChar(255)
 
-  emailVerifications   EmailVerification[]
   refreshTokens        RefreshToken[]
 
   @@map("user_auth")
   @@index([email])
   @@index([authProviders, providerId], name: "idx_provider")
-  @@schema("app_auth")
-}
-
-model EmailVerification {
-  id                  String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  email               String        @db.VarChar(255)
-  token               String        @db.VarChar(255)
-  expiresAt           DateTime      @map("expires_at") @db.Timestamp(6)
-  verifiedAt          DateTime?     @map("verified_at") @db.Timestamp(6)
-  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
-  ipAddress           String?       @map("ip_address") @db.Inet
-
-  userId              String        @map("user_id") @db.Uuid
-  user                Auth          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("email_verification")
-  @@index([email])
-  @@index([token])
   @@schema("app_auth")
 }
 
