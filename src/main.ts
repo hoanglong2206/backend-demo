@@ -2,7 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { ResponseTransformInterceptor } from '@shared/core/interceptors';
+import {
+  ResponseTransformInterceptor,
+  LoggingInterceptor,
+  TimeoutInterceptor,
+} from '@shared/core/interceptors';
+import {
+  DomainExceptionFilter,
+  GlobalExceptionFilter,
+} from '@shared/core/filters';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -14,7 +23,21 @@ async function bootstrap() {
     'app.apiDefaultVersion',
     '1',
   );
+  const corsOrigins = configService.get<string[]>('app.corsOrigins', [
+    'http://localhost:3000',
+  ]);
 
+  // Security middleware — sets various HTTP headers for basic protection
+  app.use(helmet());
+
+  app.enableCors({
+    origin: corsOrigins,
+    credentials: true, // Allow cookies to be sent
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  });
+
+  // Set global API prefix and versioning
   app.setGlobalPrefix(apiPrefix);
 
   app.enableVersioning({
@@ -35,7 +58,17 @@ async function bootstrap() {
   );
 
   //  Global response interceptor — wraps ALL responses in a standard envelope
-  app.useGlobalInterceptors(new ResponseTransformInterceptor());
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new TimeoutInterceptor(),
+    new ResponseTransformInterceptor(),
+  );
+
+  // Global exception filters — DomainException first, then catch-all
+  app.useGlobalFilters(
+    new GlobalExceptionFilter(),
+    new DomainExceptionFilter(),
+  );
 
   app.enableShutdownHooks();
 
@@ -45,4 +78,4 @@ async function bootstrap() {
     `🚀 Server running on http://localhost:${port}/${apiPrefix}/v${apiDefaultVersion}`,
   );
 }
-bootstrap();
+void bootstrap();
