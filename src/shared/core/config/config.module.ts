@@ -6,6 +6,7 @@ import { authConfig } from './auth.config';
 import { mailConfig } from './mail.config';
 import { redisConfig } from './redis.config';
 import { queueConfig } from './queue.config';
+import { cloudinaryConfig } from './cloudinary.config';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { queueConfig } from './queue.config';
         mailConfig,
         redisConfig,
         queueConfig,
+        cloudinaryConfig,
       ],
       envFilePath: ['.env'],
     }),
