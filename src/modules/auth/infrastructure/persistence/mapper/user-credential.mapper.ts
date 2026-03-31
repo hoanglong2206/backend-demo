@@ -45,6 +45,7 @@ export class UserCredentialMapper {
         lockedUntil: orm.lockedUntil,
         authProviders: orm.authProviders,
         providerId: orm.providerId,
+        isOnBoarding: orm.isOnBoarding,
       },
       orm.createdAt,
       orm.updatedAt,
@@ -68,6 +69,7 @@ export class UserCredentialMapper {
       updatedAt: entity.updatedAt,
       authProviders: entity.authProviders,
       providerId: entity.providerId,
+      isOnBoarding: entity.isOnBoarding,
     };
   }
 }

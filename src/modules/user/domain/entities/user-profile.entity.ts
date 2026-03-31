@@ -28,8 +28,9 @@ export class UserProfile extends AggregateRoot {
     props: UserProfileProps,
     createdAt?: Date,
     updatedAt?: Date,
+    deletedAt?: Date | null,
   ) {
-    super(id, createdAt, updatedAt);
+    super(id, createdAt, updatedAt, deletedAt);
     this._username = props.username;
     this._fullName = props.fullName;
     this._avatarUrl = props.avatarUrl;
@@ -59,8 +60,9 @@ export class UserProfile extends AggregateRoot {
     props: UserProfileProps,
     createdAt: Date,
     updatedAt: Date,
+    deletedAt: Date | null,
   ): UserProfile {
-    return new UserProfile(id, props, createdAt, updatedAt);
+    return new UserProfile(id, props, createdAt, updatedAt, deletedAt);
   }
 
   // ── Getters ───────────────────────────────────────────────
@@ -75,6 +77,10 @@ export class UserProfile extends AggregateRoot {
 
   get avatarUrl(): AvatarUrl {
     return this._avatarUrl;
+  }
+
+  get deletedAt(): Date | null {
+    return this._deletedAt;
   }
 
   // ── Domain behaviour ──────────────────────────────────────

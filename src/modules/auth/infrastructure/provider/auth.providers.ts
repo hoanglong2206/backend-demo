@@ -4,6 +4,10 @@ import { Provider } from '@nestjs/common';
 import { PrismaUserCredentialRepository } from '../persistence/repositories/prisma-user-credential.repository';
 import { PrismaRefreshTokenRepository } from '../persistence/repositories/prisma-refresh-token.repository';
 
+// User-module repository implementations (used by CompleteOnboardingHandler)
+import { PrismaUserProfileRepository } from '@modules/user/infrastructure/persistence/repositories/prisma-user-profile.repository';
+import { PrismaUserSettingsRepository } from '@modules/user/infrastructure/persistence/repositories/prisma-user-settings.repository';
+
 // Cache implementations
 import { RedisOtpCacheService } from '../cache/redis-otp-cache.service';
 
@@ -11,6 +15,10 @@ import { RedisOtpCacheService } from '../cache/redis-otp-cache.service';
 import { BcryptPasswordHasherService } from '../security/bcrypt-password-hasher.service';
 import { JwtTokenGeneratorService } from '../security/jwt-token-generator.service';
 import { NodemailerEmailSenderService } from '../email/nodemailer-email-sender.service';
+
+// Event infrastructure
+import { QueueEventPublisher } from '../events/queue-event-publisher.service';
+import { UserRegisteredConsumer } from '../events/user-registered.consumer';
 
 /**
  * Binds domain interface tokens to their infrastructure implementations.
@@ -30,6 +38,16 @@ export const authProviders: Provider[] = [
     useClass: PrismaRefreshTokenRepository,
   },
 
+  // ── User-module repositories (onboarding) ──
+  {
+    provide: 'IUserProfileRepository',
+    useClass: PrismaUserProfileRepository,
+  },
+  {
+    provide: 'IUserSettingsRepository',
+    useClass: PrismaUserSettingsRepository,
+  },
+
   // ── Cache ──
   {
     provide: 'IOtpCacheService',
@@ -46,6 +64,13 @@ export const authProviders: Provider[] = [
     useClass: JwtTokenGeneratorService,
   },
 
+  // ── Event infrastructure ──
+  {
+    provide: 'IEventPublisher',
+    useClass: QueueEventPublisher,
+  },
+
   // ── Infrastructure services ──
   NodemailerEmailSenderService,
+  UserRegisteredConsumer,
 ];

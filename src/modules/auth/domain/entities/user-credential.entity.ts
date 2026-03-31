@@ -14,6 +14,7 @@ interface UserCredentialProps {
   lockedUntil: Date | null;
   authProviders: string;
   providerId: string | null;
+  isOnBoarding: boolean;
 }
 
 /**
@@ -33,6 +34,7 @@ export class UserCredential extends AggregateRoot {
   private _lockedUntil: Date | null;
   private _authProviders: string;
   private _providerId: string | null;
+  private _isOnBoarding: boolean;
 
   private static readonly MAX_FAILED_ATTEMPTS = 5;
   private static readonly LOCK_DURATION_MINUTES = 15;
@@ -53,6 +55,7 @@ export class UserCredential extends AggregateRoot {
     this._lockedUntil = props.lockedUntil;
     this._authProviders = props.authProviders;
     this._providerId = props.providerId;
+    this._isOnBoarding = props.isOnBoarding;
   }
 
   /**
@@ -73,6 +76,7 @@ export class UserCredential extends AggregateRoot {
       lockedUntil: null,
       authProviders: 'local',
       providerId: null,
+      isOnBoarding: false,
     });
   }
 
@@ -124,6 +128,10 @@ export class UserCredential extends AggregateRoot {
 
   get providerId(): string | null {
     return this._providerId;
+  }
+
+  get isOnBoarding(): boolean {
+    return this._isOnBoarding;
   }
 
   // ── Domain behaviour ──────────────────────────────────────
@@ -198,6 +206,15 @@ export class UserCredential extends AggregateRoot {
     this._lockedUntil = new Date(
       Date.now() + UserCredential.LOCK_DURATION_MINUTES * 60 * 1000,
     );
+    this.touch();
+  }
+
+  /**
+   * Marks the account's onboarding step as completed.
+   * Called after the user's profile has been created.
+   */
+  completeOnboarding(): void {
+    this._isOnBoarding = true;
     this.touch();
   }
 

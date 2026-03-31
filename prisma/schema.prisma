@@ -13,7 +13,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas = ["app_auth"]
+  schemas = ["app_auth", "app_user"]
   extensions = [uuidOssp(map: "uuid-ossp")]
 }
 
@@ -30,6 +30,7 @@ model Auth {
   updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
   authProviders       String        @default("local") @map("auth_providers") @db.VarChar(30)
   providerId          String?       @map("provider_id") @db.VarChar(255)
+  isOnBoarding        Boolean       @default(false) @map("is_on_boarding")
 
   refreshTokens        RefreshToken[]
 
@@ -52,4 +53,36 @@ model RefreshToken {
   @@map("refresh_token")
   @@index([token])
   @@schema("app_auth")
+}
+
+model UserProfile {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username    String    @unique @db.VarChar(20)
+  fullName    String    @map("full_name") @db.VarChar(256)
+  avatarUrl   String?   @map("avatar_url") @db.VarChar(2048)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  settings    UserSettings?
+
+  @@map("user_profile")
+  @@index([username])
+  @@schema("app_user")
+}
+
+model UserSettings {
+  id                 String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId             String      @unique @map("user_id") @db.Uuid
+  emailNotifications Boolean     @default(true) @map("email_notifications")
+  pushNotifications  Boolean     @default(true) @map("push_notifications")
+  theme              String      @default("auto") @db.VarChar(10)
+  language           String      @default("en") @db.VarChar(10)
+  twoFactorEnabled   Boolean     @default(false) @map("two_factor_enabled")
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamp(6)
+
+  user               UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+  @@schema("app_user")
 }
