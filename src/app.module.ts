@@ -3,8 +3,15 @@ import { AppConfigModule } from '@shared/core/config/config.module';
 import { InfrastructureModule } from '@infrastructure/infrastructure.module';
 import { HealthModule } from '@modules/health/health.module';
 import { AuthModule } from '@modules/auth/auth.module';
+import { UserModule } from '@modules/user/user.module';
 
 @Module({
-  imports: [AppConfigModule, InfrastructureModule, HealthModule, AuthModule],
+  imports: [
+    AppConfigModule,
+    InfrastructureModule,
+    HealthModule,
+    AuthModule,
+    UserModule,
+  ],
 })
 export class AppModule {}

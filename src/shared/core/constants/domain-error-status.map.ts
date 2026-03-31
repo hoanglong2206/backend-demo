@@ -16,4 +16,9 @@ export const DOMAIN_ERROR_STATUS_MAP: Readonly<Record<string, number>> = {
   AUTH_OTP_EXPIRED: HttpStatus.BAD_REQUEST,
   AUTH_OTP_MAX_ATTEMPTS: HttpStatus.TOO_MANY_REQUESTS,
   AUTH_OTP_RESEND_COOLDOWN: HttpStatus.TOO_MANY_REQUESTS,
+
+  // ── User ──────────────────────────────────────────────────────────────
+  USER_NOT_FOUND: HttpStatus.NOT_FOUND,
+  USER_ALREADY_DELETED: HttpStatus.GONE,
+  USER_USERNAME_TAKEN: HttpStatus.CONFLICT,
 };
