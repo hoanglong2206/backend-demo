@@ -8,9 +8,14 @@ import { IUserCredentialRepository } from '@modules/auth/domain/repositories/use
 import { IRefreshTokenRepository } from '@modules/auth/domain/repositories/refresh-token.repository';
 import { IPasswordHasherService } from '@modules/auth/domain/services/password-hasher.service';
 import { ITokenGeneratorService } from '@modules/auth/domain/services/token-generator.service';
+import { IEventPublisher } from '@modules/auth/domain/services/event-publisher.service';
 import { UserCredential } from '@modules/auth/domain/entities/user-credential.entity';
 import { RefreshToken } from '@modules/auth/domain/entities/refresh-token.entity';
 import { Email } from '@modules/auth/domain/value-objects/email.vo';
+import {
+  UserRegisteredEvent,
+  USER_REGISTERED_QUEUE,
+} from '@modules/auth/domain/events/user-registered.event';
 import {
   CreateAccountInput,
   CreateAccountOutput,
@@ -23,8 +28,9 @@ import * as crypto from 'crypto';
  * Use-case: Finalize account creation after email OTP verification.
  *
  * Validates the account_token (issued after successful OTP verification),
- * creates the UserCredential with the real password, and issues a
- * session (access + refresh tokens) so the user is immediately logged in.
+ * creates the UserCredential with the real password, issues a session
+ * (access + refresh tokens) so the user is immediately logged in, and
+ * publishes a UserRegisteredEvent to the queue for async processing.
  */
 @Injectable()
 export class CreateAccountHandler {
@@ -40,6 +46,9 @@ export class CreateAccountHandler {
 
     @Inject('ITokenGeneratorService')
     private readonly tokenGenerator: ITokenGeneratorService,
+
+    @Inject('IEventPublisher')
+    private readonly eventPublisher: IEventPublisher,
   ) {}
 
   async execute(input: CreateAccountInput): Promise<CreateAccountOutput> {
@@ -73,7 +82,7 @@ export class CreateAccountHandler {
     // 4. Hash the password
     const passwordHash = await this.passwordHasher.hash(input.password);
 
-    // 5. Create the UserCredential
+    // 5. Create the UserCredential (isOnBoarding defaults to false)
     const userId = crypto.randomUUID();
     const userCredential = UserCredential.createLocal(
       userId,
@@ -84,7 +93,11 @@ export class CreateAccountHandler {
 
     await this.userCredentialRepo.save(userCredential);
 
-    // 6. Generate session tokens
+    // 6. Publish UserRegisteredEvent (async, via queue)
+    const event = new UserRegisteredEvent(userId, email.value);
+    await this.eventPublisher.publish(USER_REGISTERED_QUEUE, event);
+
+    // 7. Generate session tokens
     const accessToken = await this.tokenGenerator.generateAccessToken(userId, {
       email: email.value,
     });
@@ -103,7 +116,7 @@ export class CreateAccountHandler {
     );
     await this.refreshTokenRepo.save(refreshTokenEntity);
 
-    // 7. Build response
+    // 8. Build response
     const user = new UserOutput();
     user.id = userCredential.id;
     user.email = userCredential.email.value;

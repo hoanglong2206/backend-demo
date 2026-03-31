@@ -16,6 +16,7 @@ import { CreateAccountHandler } from './application/use-case/create-account/crea
 import { LoginHandler } from './application/use-case/login/login.handler';
 import { RefreshTokenHandler } from './application/use-case/refresh-token/refresh-token.handler';
 import { LogoutHandler } from './application/use-case/logout/logout.handler';
+import { CompleteOnboardingHandler } from './application/use-case/complete-onboarding/complete-onboarding.handler';
 
 // Controller
 import { AuthController } from './presentation/http/auth.controller';
@@ -41,6 +42,7 @@ import { AuthController } from './presentation/http/auth.controller';
     LoginHandler,
     RefreshTokenHandler,
     LogoutHandler,
+    CompleteOnboardingHandler,
   ],
 })
 export class AuthModule {}

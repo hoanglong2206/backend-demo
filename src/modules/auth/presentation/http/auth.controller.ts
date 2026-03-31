@@ -20,6 +20,8 @@ import { RefreshTokenHandler } from '@modules/auth/application/use-case/refresh-
 import { RefreshTokenInput } from '@modules/auth/application/use-case/refresh-token/refresh-token.dto';
 import { LogoutHandler } from '@modules/auth/application/use-case/logout/logout.handler';
 import { LogoutInput } from '@modules/auth/application/use-case/logout/logout.dto';
+import { CompleteOnboardingHandler } from '@modules/auth/application/use-case/complete-onboarding/complete-onboarding.handler';
+import { CompleteOnboardingInput } from '@modules/auth/application/use-case/complete-onboarding/complete-onboarding.dto';
 import { JwtAuthGuard } from '@modules/auth/presentation/guard/jwt-auth.guard';
 import { RefreshTokenGuard } from '@modules/auth/presentation/guard/refresh-token.guard';
 
@@ -33,6 +35,7 @@ export class AuthController {
     private readonly loginHandler: LoginHandler,
     private readonly refreshTokenHandler: RefreshTokenHandler,
     private readonly logoutHandler: LogoutHandler,
+    private readonly completeOnboardingHandler: CompleteOnboardingHandler,
   ) {}
 
   @Post('register-email')
@@ -77,5 +80,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   logout(@Body() dto: LogoutInput) {
     return this.logoutHandler.execute(dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('onboarding')
+  @HttpCode(HttpStatus.OK)
+  completeOnboarding(@Body() dto: CompleteOnboardingInput) {
+    return this.completeOnboardingHandler.execute(dto);
   }
 }

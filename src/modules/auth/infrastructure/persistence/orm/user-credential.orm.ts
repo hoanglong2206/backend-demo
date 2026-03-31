@@ -17,4 +17,5 @@ export interface UserCredentialOrm {
   updatedAt: Date;
   authProviders: string;
   providerId: string | null;
+  isOnBoarding: boolean;
 }

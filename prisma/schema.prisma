@@ -30,6 +30,7 @@ model Auth {
   updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
   authProviders       String        @default("local") @map("auth_providers") @db.VarChar(30)
   providerId          String?       @map("provider_id") @db.VarChar(255)
+  isOnBoarding        Boolean       @default(false) @map("is_on_boarding")
 
   refreshTokens        RefreshToken[]
 
